@@ -7,32 +7,40 @@ import { useEffect, useState } from 'react'
 import address from '@/services/tokenMint.json'
 import {fetchSalesHistory, getTokenBalance} from "@/services/blockchain";
 import {useConnection, useWallet} from "@solana/wallet-adapter-react";
-import {PublicKey} from "@solana/web3.js";
-import {SalesHistoryItem} from "@/utils/types.dt";
+import {Keypair, PublicKey} from "@solana/web3.js";
+import {RootState} from "@/utils/types.dt";
 import Skeleton from "react-loading-skeleton";
+import {useDispatch, useSelector} from "react-redux";
+import {globalActions} from "@/store/globalSlice";
 
 export default function Home() {
 
   const { connection } = useConnection();
   const { publicKey } = useWallet();
 
+  const dispatch = useDispatch();
+  const { setSalesHistory, setBalance } = globalActions
+
   const TOKEN_MINT_ADDRESS = new PublicKey(address.address) || '';
+  const TOKEN_OWNER = process.env.NEXT_PUBLIC_TOKEN_OWNER_KEY_PAIR || '';
+
+  const ownerArray = Uint8Array.from(TOKEN_OWNER.split(',').map(Number))
+  const OWNER: Keypair = Keypair.fromSecretKey(ownerArray);
 
   const [isLoading, setIsLoading] = useState(true)
-  const [balance, setBalance] = useState(0)
-  const [mintHistory, setMintHistory] = useState<SalesHistoryItem[]>([])
+  const { salesHistory, balance } = useSelector((states: RootState) => states.globalStates)
 
   useEffect(() => {
     fetchData()
-  }, [])
+  }, [dispatch, setBalance, publicKey])
 
   const fetchData = async () => {
-    const history: any = await fetchSalesHistory(connection, TOKEN_MINT_ADDRESS)
-    setMintHistory(history)
+    const history: any = await fetchSalesHistory(connection, OWNER.publicKey)
+    dispatch(setSalesHistory(history))
 
     if(publicKey) {
       const balance = await getTokenBalance(connection, TOKEN_MINT_ADDRESS, publicKey)
-      setBalance(balance)
+      dispatch(setBalance(balance))
     }
     setIsLoading(false)
   }
@@ -52,7 +60,7 @@ export default function Home() {
         <main className="max-w-lg mx-auto p-4 space-y-4">
           <BuyTokens />
           {isLoading ? <Skeleton height={70} className={"mb-2"} /> : <Balance balance={balance} /> }
-          {isLoading ? <Skeleton height={5} /> : <MintHistory mintHistory={mintHistory} /> }
+          {isLoading ? <Skeleton height={5} /> : <MintHistory mintHistory={salesHistory} /> }
         </main>
       </div>
     </>

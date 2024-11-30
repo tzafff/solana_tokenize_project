@@ -3,8 +3,10 @@ import 'dotenv/config'
 import {useConnection, useWallet} from "@solana/wallet-adapter-react";
 import {Keypair, PublicKey} from "@solana/web3.js";
 import address from "@/services/tokenMint.json";
-import {buyToken} from "@/services/blockchain";
+import {buyToken, fetchSalesHistory, getTokenBalance} from "@/services/blockchain";
 import {toast} from "react-toastify";
+import {useDispatch} from "react-redux";
+import {globalActions} from "@/store/globalSlice";
 
 const BuyTokens = () => {
   const [amount, setAmount] = useState('')
@@ -12,10 +14,12 @@ const BuyTokens = () => {
   const { connection } = useConnection()
   const { publicKey, sendTransaction } = useWallet();
 
-  const TOKEN_OWNER = process.env.NEXT_PUBLIC_TOKEN_OWNER_KEY_PAIR
+  const dispatch = useDispatch();
+  const { setSalesHistory, setBalance } = globalActions
+
+  const TOKEN_OWNER = process.env.NEXT_PUBLIC_TOKEN_OWNER_KEY_PAIR || '';
   const TOKEN_MINT_ADDRESS = new PublicKey(address.address) || '';
 
-  // @ts-ignore
   const ownerArray = Uint8Array.from(TOKEN_OWNER.split(',').map(Number))
   const OWNER: Keypair = Keypair.fromSecretKey(ownerArray);
 
@@ -44,9 +48,14 @@ const BuyTokens = () => {
           })
 
           setAmount('')
-
           await connection.confirmTransaction(signature, 'finalized')
           console.log(`Transaction signature: ${signature}`)
+
+          const history: any = await fetchSalesHistory(connection, OWNER.publicKey)
+          dispatch(setSalesHistory(history))
+
+          const balance = await getTokenBalance(connection, TOKEN_MINT_ADDRESS, publicKey)
+          dispatch(setBalance(balance))
 
           resolve(signature as any)
 
