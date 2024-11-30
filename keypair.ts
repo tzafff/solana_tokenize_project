@@ -3,6 +3,7 @@ import bs58 from "bs58";
 
 const keypair = Keypair.generate();
 
+
 const privateKeyBase58 = bs58.encode(keypair.secretKey);
 
 console.log(`The public key is: ${keypair.publicKey.toBase58()}`);

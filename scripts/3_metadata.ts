@@ -1,24 +1,21 @@
+import {checkOwner, getTokenAddress, OWNER} from "@/scripts/reuse";
+import {clusterApiUrl, Connection, Keypair, PublicKey, sendAndConfirmTransaction, Transaction} from "@solana/web3.js";
 import {
-  Connection,
-  Keypair,
-  PublicKey,
-  Transaction,
-  clusterApiUrl,
-  sendAndConfirmTransaction,
-} from '@solana/web3.js'
-import { createCreateMetadataAccountV3Instruction } from '@metaplex-foundation/mpl-token-metadata'
-import { OWNER, getTokenMintFromFile } from './reused'
+  createCreateMetadataAccountV3Instruction
+} from "@metaplex-foundation/mpl-token-metadata";
 
-const connection = new Connection(clusterApiUrl('devnet'))
+checkOwner();
+
+const connection = new Connection((clusterApiUrl('devnet')))
 
 const setupTokenMetadata = async (tokenMint: PublicKey, OWNER: Keypair) => {
-  const TOKEN_METADATA_PROGRAM_ID = new PublicKey('metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s')
+    const TOKEN_METADATA_PROGRAM_ID = new PublicKey('metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s');
 
   const metadataData = {
-    name: 'Dapp Mentors YouTube',
-    symbol: 'DMY',
+    name: 'Tokenizer Coin v3',
+    symbol: 'TKC',
     // Arweave / IPFS / Pinata etc link using metaplex standard for off-chain data
-    uri: 'https://dappmentors.org',
+    uri: 'https://ctzaf-portfolio.vercel.app/',
     sellerFeeBasisPoints: 0,
     creators: null,
     collection: null,
@@ -30,18 +27,16 @@ const setupTokenMetadata = async (tokenMint: PublicKey, OWNER: Keypair) => {
     TOKEN_METADATA_PROGRAM_ID
   )
 
-  console.log(`✅ Finished! Created token metadata: ${metadataPDAAndBump[0].toString()}`)
-
   const metadataPDA = metadataPDAAndBump[0]
-  const transaction = new Transaction()
+  const transaction = new Transaction();
 
   const createMetadataAccountInstruction = createCreateMetadataAccountV3Instruction(
     {
-      metadata: metadataPDA,
-      mint: tokenMint,
-      mintAuthority: OWNER.publicKey,
-      payer: OWNER.publicKey,
-      updateAuthority: OWNER.publicKey,
+     metadata: metadataPDA,
+     mint: tokenMint,
+     mintAuthority: OWNER.publicKey,
+     payer: OWNER.publicKey,
+     updateAuthority: OWNER.publicKey,
     },
     {
       createMetadataAccountArgsV3: {
@@ -54,12 +49,13 @@ const setupTokenMetadata = async (tokenMint: PublicKey, OWNER: Keypair) => {
 
   transaction.add(createMetadataAccountInstruction)
 
-  const transactionSignature = await sendAndConfirmTransaction(connection, transaction, [OWNER])
-  console.log(`✅ Finished! Created token metadata: ${transactionSignature}`)
+  const signature = await sendAndConfirmTransaction(connection, transaction, [OWNER])
+  console.log(`✅ Finished! Created token metadata: ${signature}`)
+
 }
 
 const main = async () => {
-  const tokenMint = getTokenMintFromFile()
+  const tokenMint = getTokenAddress()
   await setupTokenMetadata(tokenMint, OWNER)
   console.log(`✅ Metadata setup complete!`)
 }

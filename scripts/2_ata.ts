@@ -1,27 +1,33 @@
-import { Connection, PublicKey, clusterApiUrl } from '@solana/web3.js'
-import { getOrCreateAssociatedTokenAccount } from '@solana/spl-token'
-import { OWNER, getTokenMintFromFile } from './reused'
+import {checkOwner, getTokenAddress, OWNER} from "@/scripts/reuse";
+import {clusterApiUrl, Connection, Keypair, PublicKey} from "@solana/web3.js";
+import {getOrCreateAssociatedTokenAccount} from "@solana/spl-token";
 
-const connection = new Connection(clusterApiUrl('devnet'))
+checkOwner();
 
-const getOrCreateATA = async (tokenMint: PublicKey): Promise<PublicKey> => {
-  const maxRetries = 30
-  let attempt = 0
+const connection = new Connection((clusterApiUrl('devnet')))
+
+export const getOrCreateATA = async (tokenMint: PublicKey, OWNER: Keypair): Promise<PublicKey> => {
+  const maxRetries = 30;
+  let attempt = 0;
 
   while (attempt < maxRetries) {
     try {
-      console.log(`Attempt ${attempt + 1} to get or create ATA for token mint: ${tokenMint.toString()}`)
+      `Attempt ${attempt + 1} to get or create ATA for token mint: ${tokenMint.toString()}`
       const ownerTokenAccount = await getOrCreateAssociatedTokenAccount(
         connection,
         OWNER,
         tokenMint,
         OWNER.publicKey
       )
+
       console.log(`✅ Finished! Associated token account: ${ownerTokenAccount.address.toString()}`)
       return ownerTokenAccount.address
     } catch (error) {
-      console.error(`❌ Error creating or fetching associated token account on attempt ${attempt + 1}:`, error)
-      attempt++
+      console.error(
+        `❌ Error creating or fetching associated token account on attempt ${attempt + 1}:`,
+        error
+      )
+      attempt++;
       if (attempt >= maxRetries) {
         console.error('❌ Max retries reached. Throwing error.')
         throw error
@@ -33,8 +39,8 @@ const getOrCreateATA = async (tokenMint: PublicKey): Promise<PublicKey> => {
 }
 
 const main = async () => {
-  const tokenMint = getTokenMintFromFile()
-  const ata = await getOrCreateATA(tokenMint)
+  const tokenMint = getTokenAddress();
+  const ata = await getOrCreateATA(tokenMint, OWNER);
   console.log(`✅ Associated token account: ${ata}`)
 }
 

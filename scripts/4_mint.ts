@@ -1,46 +1,38 @@
-import { Connection, PublicKey, clusterApiUrl } from '@solana/web3.js'
-import { getOrCreateAssociatedTokenAccount, mintTo } from '@solana/spl-token'
-import { getTokenMintFromFile, OWNER } from './reused'
+import {checkOwner, getTokenAddress, OWNER} from "@/scripts/reuse";
+import {clusterApiUrl, Connection, Keypair, PublicKey} from "@solana/web3.js";
+import {getOrCreateAssociatedTokenAccount, mintTo} from "@solana/spl-token";
 
-const connection = new Connection(clusterApiUrl('devnet'))
+checkOwner();
 
-const getOrCreateATA = async (tokenMint: PublicKey): Promise<PublicKey> => {
-  try {
-    const ownerTokenAccount = await getOrCreateAssociatedTokenAccount(
-      connection,
-      OWNER,
-      tokenMint,
-      OWNER.publicKey
-    )
-    console.log(`✅ Finished! Associated token account: ${ownerTokenAccount.address.toString()}`)
-    return ownerTokenAccount.address
-  } catch (error) {
-    console.error('❌ Error creating or fetching associated token account:', error)
-    throw error
-  }
-}
+const connection = new Connection((clusterApiUrl('devnet')))
 
 const mintTokens = async (
   tokenMint: PublicKey,
-  ownerTokenAccountAddress: PublicKey
+  OWNER: Keypair,
 ): Promise<void> => {
-  await mintTo(
+
+  const ownerTokenAccount = await getOrCreateAssociatedTokenAccount(
     connection,
     OWNER,
     tokenMint,
-    ownerTokenAccountAddress,
-    OWNER.publicKey,
-    1000 * 10 ** 2 // 1000 tokens with 2 decimal places
+    OWNER.publicKey
   )
 
-  console.log(`✅ Finished! Minted tokens to owner: ${ownerTokenAccountAddress.toString()}`)
+  const signature = await mintTo(
+    connection,
+    OWNER,
+    tokenMint,
+    ownerTokenAccount.address,
+    OWNER.publicKey,
+    1000 * Math.pow(10, 2) // 1000 tokens with 2 decimal places
+  )
+
+  console.log(`✅ Finished! Token mint complete: ${signature}`)
 }
 
 const main = async () => {
-  const tokenMint = getTokenMintFromFile()
-  const ata = await getOrCreateATA(tokenMint)
-  await mintTokens(tokenMint, ata)
-
+  const tokenMint = getTokenAddress()
+  await mintTokens(tokenMint, OWNER)
   console.log(`✅ Token mint complete!`)
 }
 

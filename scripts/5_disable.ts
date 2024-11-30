@@ -1,11 +1,14 @@
-import { Connection, Keypair, PublicKey, clusterApiUrl } from '@solana/web3.js'
-import { AuthorityType, setAuthority } from '@solana/spl-token'
-import { OWNER, getTokenMintFromFile } from './reused'
+import {checkOwner, getTokenAddress, OWNER} from "@/scripts/reuse";
+import {clusterApiUrl, Connection, Keypair, PublicKey} from "@solana/web3.js";
+import {AuthorityType, setAuthority} from "@solana/spl-token";
 
-const connection = new Connection(clusterApiUrl('devnet'))
 
-const disableMintAuthority = async (tokenMint: PublicKey, OWNER: Keypair): Promise<void> => {
-  const signer = await setAuthority(
+checkOwner();
+
+const connection = new Connection((clusterApiUrl('devnet')))
+
+const disableMintAuthority = async(tokenMint: PublicKey, OWNER: Keypair) => {
+  const signature = await setAuthority(
     connection,
     OWNER,
     tokenMint,
@@ -14,11 +17,11 @@ const disableMintAuthority = async (tokenMint: PublicKey, OWNER: Keypair): Promi
     null
   )
 
-  console.log(`✅ Finished! Set mint authority: ${signer}`)
+  console.log(`✅ Finished! Set mint authority: ${signature}`)
 }
 
 const main = async () => {
-  const tokenMint = getTokenMintFromFile()
+  const tokenMint = getTokenAddress()
   await disableMintAuthority(tokenMint, OWNER)
   console.log(`✅ Mint Authority disabled!`)
 }
