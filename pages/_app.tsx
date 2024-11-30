@@ -1,6 +1,7 @@
 import {AppProps} from 'next/app'
 import '@/styles/global.css'
 import 'react-toastify/dist/ReactToastify.css'
+import 'react-loading-skeleton/dist/skeleton.css'
 import AppWalletProvider from "@/components/AppWalletProvider";
 import {ToastContainer} from "react-toastify";
 

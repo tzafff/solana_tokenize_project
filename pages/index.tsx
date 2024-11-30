@@ -9,6 +9,7 @@ import {fetchSalesHistory, getTokenBalance} from "@/services/blockchain";
 import {useConnection, useWallet} from "@solana/wallet-adapter-react";
 import {PublicKey} from "@solana/web3.js";
 import {SalesHistoryItem} from "@/utils/types.dt";
+import Skeleton from "react-loading-skeleton";
 
 export default function Home() {
 
@@ -50,8 +51,8 @@ export default function Home() {
 
         <main className="max-w-lg mx-auto p-4 space-y-4">
           <BuyTokens />
-          <Balance balance={balance} />
-          <MintHistory mintHistory={mintHistory} />
+          {isLoading ? <Skeleton height={70} className={"mb-2"} /> : <Balance balance={balance} /> }
+          {isLoading ? <Skeleton height={5} /> : <MintHistory mintHistory={mintHistory} /> }
         </main>
       </div>
     </>
