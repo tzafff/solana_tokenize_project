@@ -4,19 +4,28 @@ import Header from '@/components/Header'
 import MintHistory from '@/components/MintHistory'
 import Head from 'next/head'
 import { useEffect, useState } from 'react'
-import data from '@/utils/data.json'
+import address from '@/services/tokenMint.json'
+import {fetchSalesHistory} from "@/services/blockchain";
+import {useConnection} from "@solana/wallet-adapter-react";
+import {PublicKey} from "@solana/web3.js";
+import {SalesHistoryItem} from "@/utils/types.dt";
 
 export default function Home() {
+
+  const { connection } = useConnection()
+
+  const TOKEN_MINT_ADDRESS = new PublicKey(address.address) || '';
+
   const [isLoading, setIsLoading] = useState(true)
   const [balance, setBalance] = useState(0)
-  const [mintHistory, setMintHistory] = useState([])
+  const [mintHistory, setMintHistory] = useState<SalesHistoryItem[]>([])
 
   useEffect(() => {
     fetchData()
   }, [])
 
   const fetchData = async () => {
-    const history: any = data
+    const history: any = await fetchSalesHistory(connection, TOKEN_MINT_ADDRESS)
     setMintHistory(history)
 
     const balance = 0
