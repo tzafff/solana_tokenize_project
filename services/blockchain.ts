@@ -1,7 +1,32 @@
 import {Connection, PublicKey} from "@solana/web3.js";
-import {decodeInstruction} from "@solana/spl-token";
+import {
+  ASSOCIATED_TOKEN_PROGRAM_ID,
+  decodeInstruction,
+  getAssociatedTokenAddress,
+  TOKEN_PROGRAM_ID
+} from "@solana/spl-token";
 import bs58 from "bs58";
 import { SalesHistoryItem } from "@/utils/types.dt";
+
+export const getTokenBalance = async (
+  connection: Connection,
+  mintPubKey: PublicKey, // token address of token on solana devnet
+  recipientPubKey: PublicKey, // address of user we check the ata
+) : Promise<number> => {
+  const ata = await getAssociatedTokenAddress(
+    mintPubKey,
+    recipientPubKey,
+    false,
+    TOKEN_PROGRAM_ID,
+    ASSOCIATED_TOKEN_PROGRAM_ID,
+  )
+
+  const accountInfo = await connection.getAccountInfo(ata);
+  if(!accountInfo) return 0
+
+  const tokenAccountBalance = await connection.getTokenAccountBalance(ata);
+  return tokenAccountBalance.value.uiAmount || 0
+}
 
 const fetchSalesHistory = async (connection: Connection, address: PublicKey) => {
   const signatures = await connection.getSignaturesForAddress(address, {limit: 5})
