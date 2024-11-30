@@ -1,6 +1,6 @@
-import {Connection, PublicKey} from "@solana/web3.js";
+import {Connection, Keypair, LAMPORTS_PER_SOL, PublicKey, SystemProgram, Transaction} from "@solana/web3.js";
 import {
-  ASSOCIATED_TOKEN_PROGRAM_ID,
+  ASSOCIATED_TOKEN_PROGRAM_ID, createAssociatedTokenAccountInstruction, createTransferInstruction,
   decodeInstruction,
   getAssociatedTokenAddress,
   TOKEN_PROGRAM_ID
@@ -8,7 +8,96 @@ import {
 import bs58 from "bs58";
 import { SalesHistoryItem } from "@/utils/types.dt";
 
-export const getTokenBalance = async (
+
+const buyToken = async (
+  connection: Connection,
+  mintPubKey: PublicKey,
+  OWNER: Keypair,
+  recipientPubKey: PublicKey,
+  amount: number,
+  salesCost: number,
+): Promise<Transaction> => {
+  const transaction = new Transaction();
+  transaction.feePayer = recipientPubKey
+
+  const receiverAta = await getAssociatedTokenAddress(
+    mintPubKey,
+    recipientPubKey,
+    false,
+    TOKEN_PROGRAM_ID,
+    ASSOCIATED_TOKEN_PROGRAM_ID,
+  )
+
+  const senderAta = await getAssociatedTokenAddress(
+    mintPubKey,
+    OWNER.publicKey,
+    false,
+    TOKEN_PROGRAM_ID,
+    ASSOCIATED_TOKEN_PROGRAM_ID,
+  )
+
+  transaction.add(solanaTransferInstruction(recipientPubKey, OWNER.publicKey, amount, salesCost))
+
+  const accountInfo = await connection.getAccountInfo(receiverAta);
+  if(!accountInfo) {
+    console.log(`Will include fee for creating ${receiverAta.toBase58()} ATA`)
+    transaction.add(createATAInstruction(recipientPubKey, receiverAta, mintPubKey))
+  }
+
+  transaction.add(tokenTransferInstruction(senderAta, receiverAta, OWNER.publicKey, amount))
+
+  return transaction;
+}
+
+const tokenTransferInstruction = (
+  senderATA: PublicKey,
+  receiverATA: PublicKey,
+  ownerPubKey: PublicKey,
+  amount: number
+) => {
+  const instruction = createTransferInstruction(
+    senderATA,
+    receiverATA,
+    ownerPubKey,
+    amount * Math.pow(10, 2),
+    [],
+    TOKEN_PROGRAM_ID
+  )
+
+  return instruction
+}
+
+const createATAInstruction = (
+  payer: PublicKey,
+  ata: PublicKey,
+  mintPubKey: PublicKey,
+) => {
+  const instruction = createAssociatedTokenAccountInstruction(
+    payer,
+    ata,
+    payer,
+    mintPubKey
+  );
+
+  return instruction;
+}
+
+const solanaTransferInstruction = (
+  fromPubkey: PublicKey,
+  toPubkey: PublicKey,
+  amount: number,
+  salesCost: number
+) => {
+  const instruction = SystemProgram.transfer({
+    fromPubkey,
+    toPubkey,
+    lamports: parseInt((salesCost * amount * LAMPORTS_PER_SOL).toString()),
+  })
+
+  return instruction
+}
+
+const getTokenBalance = async (
   connection: Connection,
   mintPubKey: PublicKey, // token address of token on solana devnet
   recipientPubKey: PublicKey, // address of user we check the ata
@@ -104,4 +193,4 @@ function decodeAmount(data: string) : number {
   return amount;
 }
 
-export { fetchSalesHistory }
+export { fetchSalesHistory, getTokenBalance, buyToken }
