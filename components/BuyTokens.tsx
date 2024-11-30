@@ -4,6 +4,7 @@ import {useConnection, useWallet} from "@solana/wallet-adapter-react";
 import {Keypair, PublicKey} from "@solana/web3.js";
 import address from "@/services/tokenMint.json";
 import {buyToken} from "@/services/blockchain";
+import {toast} from "react-toastify";
 
 const BuyTokens = () => {
   const [amount, setAmount] = useState('')
@@ -20,9 +21,9 @@ const BuyTokens = () => {
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
-    if(!connection || !publicKey) return console.log('Please install or connect your wallet!')
-    if(!TOKEN_MINT_ADDRESS) return console.log('Please provide a TOKEN MINT ADDRESS!')
-    if(!TOKEN_OWNER) return console.log('Please provide a TOKEN OWNER KEYPAIR')
+    if(!connection || !publicKey) return toast.warning('Please install or connect your wallet!')
+    if(!TOKEN_MINT_ADDRESS) return toast.warning('Please provide a TOKEN MINT ADDRESS!')
+    if(!TOKEN_OWNER) return toast.warning('Please provide a TOKEN OWNER KEYPAIR')
 
 
 
@@ -35,16 +36,32 @@ const BuyTokens = () => {
       salesCost
     )
 
-    const signature = await sendTransaction(tx, connection, {
-      signers: [OWNER],
-    })
+    await toast.promise(
+      new Promise<void>(async (resolve, reject) => {
+        try{
+          const signature = await sendTransaction(tx, connection, {
+            signers: [OWNER],
+          })
 
-    setAmount('')
+          setAmount('')
 
-    await connection.confirmTransaction(signature, 'finalized')
+          await connection.confirmTransaction(signature, 'finalized')
+          console.log(`Transaction signature: ${signature}`)
 
-    console.log(signature);
+          resolve(signature as any)
 
+        } catch (error) {
+          console.log('Transaction failed: ', error)
+          reject(error)
+        }
+      })
+      ,
+      {
+        pending: 'Approve transaction...',
+        success: 'Transaction successful 👌',
+        error: 'Encountered error 🤯',
+      }
+    )
   }
 
   return (
